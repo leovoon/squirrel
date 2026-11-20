@@ -7,14 +7,38 @@
 
 import AppKit
 
+enum CandidatePanelPositionMode: String, CaseIterable {
+  case follow
+  case offset
+  case pinned
+
+  var localizedTitle: String {
+    switch self {
+    case .follow:
+      NSLocalizedString("Follow caret", comment: "Candidate panel position")
+    case .offset:
+      NSLocalizedString("Offset from caret", comment: "Candidate panel position")
+    case .pinned:
+      NSLocalizedString("Pin panel", comment: "Candidate panel position")
+    }
+  }
+}
+
 final class SquirrelPanel: NSPanel {
+  private static let modeOverrideKey = "candidatePanelPositionMode"
+  private static let offsetKey = "candidatePanelPositionOffset"
+  private static let pinnedOriginKey = "candidatePanelPinnedOrigin"
+
   private let view: SquirrelView
   private let back: NSVisualEffectView
   var inputController: SquirrelInputController?
 
   var position: NSRect
+  private(set) var positionMode = CandidatePanelPositionMode.follow
   private var screenRect: NSRect = .zero
   private var maxHeight: CGFloat = 0
+  private var configuredPositionMode = CandidatePanelPositionMode.follow
+  private var followOrigin: NSPoint?
 
   private var statusMessage: String = ""
   private var statusTimer: Timer?
@@ -69,16 +93,19 @@ final class SquirrelPanel: NSPanel {
 
   // swiftlint:disable:next cyclomatic_complexity
   override func sendEvent(_ event: NSEvent) {
+    var forwardEvent = true
     switch event.type {
     case .leftMouseDown:
-      let (index, _, pagingUp) =  view.click(at: mousePosition())
-      if let pagingUp {
-        self.pagingUp = pagingUp
+      if positionMode != .follow && event.modifierFlags.contains(.option) {
+        performDrag(with: event)
+        saveDraggedOrigin(frame.origin)
+        forwardEvent = false
       } else {
-        self.pagingUp = nil
-      }
-      if let index, index >= 0 && index < candidates.count {
-        self.index = index
+        let (index, _, pagingUp) = view.click(at: mousePosition())
+        self.pagingUp = pagingUp
+        if let index, index >= 0 && index < candidates.count {
+          self.index = index
+        }
       }
     case .leftMouseUp:
       let (index, preeditIndex, pagingUp) = view.click(at: mousePosition())
@@ -144,7 +171,38 @@ final class SquirrelPanel: NSPanel {
     default:
       break
     }
-    super.sendEvent(event)
+    if forwardEvent {
+      super.sendEvent(event)
+    }
+  }
+
+  func setPositionMode(_ mode: CandidatePanelPositionMode, persistOverride: Bool = true) {
+    guard mode != positionMode else { return }
+    let panelIsVisible = isVisible
+    if panelIsVisible {
+      switch mode {
+      case .follow:
+        break
+      case .offset:
+        if positionMode == .follow {
+          saveOffset(from: frame.origin)
+        }
+      case .pinned:
+        savePinnedOrigin(frame.origin)
+      }
+    }
+    positionMode = mode
+    if persistOverride {
+      UserDefaults.standard.set(mode.rawValue, forKey: Self.modeOverrideKey)
+    }
+    if panelIsVisible {
+      show()
+    }
+  }
+
+  func useConfiguredPositionMode() {
+    UserDefaults.standard.removeObject(forKey: Self.modeOverrideKey)
+    setPositionMode(configuredPositionMode, persistOverride: false)
   }
 
   func hide() {
@@ -306,6 +364,12 @@ final class SquirrelPanel: NSPanel {
   }
 
   func load(config: SquirrelConfig, forDarkMode isDark: Bool) {
+    configuredPositionMode =
+      CandidatePanelPositionMode(rawValue: config.getString("style/candidate_panel_position") ?? "")
+      ?? .follow
+    positionMode =
+      UserDefaults.standard.string(forKey: Self.modeOverrideKey)
+      .flatMap(CandidatePanelPositionMode.init(rawValue:)) ?? configuredPositionMode
     if isDark {
       view.darkTheme = SquirrelTheme()
       view.darkTheme.load(config: config, dark: true)
@@ -327,7 +391,11 @@ private extension SquirrelPanel {
     if let screen = NSScreen.main {
       screenRect = screen.frame
     }
-    for screen in NSScreen.screens where screen.frame.contains(position.origin) {
+    let screenPoint =
+      positionMode == .pinned
+      ? storedPoint(forKey: Self.pinnedOriginKey) ?? position.origin
+      : position.origin
+    for screen in NSScreen.screens where screen.frame.contains(screenPoint) {
       screenRect = screen.frame
       break
     }
@@ -419,6 +487,27 @@ private extension SquirrelPanel {
     if panelRect.minY < screenRect.minY {
       panelRect.origin.y = screenRect.minY
     }
+
+    followOrigin = panelRect.origin
+    switch positionMode {
+    case .follow:
+      break
+    case .offset:
+      let offset = storedPoint(forKey: Self.offsetKey) ?? .zero
+      panelRect.origin.x += offset.x
+      panelRect.origin.y += offset.y
+      panelRect = clamped(panelRect, to: screenRect)
+    case .pinned:
+      let pinnedOrigin = storedPoint(forKey: Self.pinnedOriginKey) ?? panelRect.origin
+      savePinnedOrigin(pinnedOrigin)
+      panelRect.origin = pinnedOrigin
+      let pinnedScreen =
+        NSScreen.screens.first(where: { $0.frame.contains(pinnedOrigin) })?.frame
+        ?? NSScreen.main?.frame
+        ?? screenRect
+      panelRect = clamped(panelRect, to: pinnedScreen)
+    }
+
     self.setFrame(panelRect, display: true)
 
     // rotate the view, the core in vertical mode!
@@ -450,6 +539,52 @@ private extension SquirrelPanel {
     invalidateShadow()
     orderFront(nil)
     // voila!
+  }
+
+  func clamped(_ rect: NSRect, to screen: NSRect) -> NSRect {
+    var rect = rect
+    rect.origin.x = min(max(rect.origin.x, screen.minX), screen.maxX - rect.width)
+    rect.origin.y = min(max(rect.origin.y, screen.minY), screen.maxY - rect.height)
+    return rect
+  }
+
+  func saveDraggedOrigin(_ origin: NSPoint) {
+    switch positionMode {
+    case .follow:
+      break
+    case .offset:
+      saveOffset(from: origin)
+    case .pinned:
+      savePinnedOrigin(origin)
+    }
+  }
+
+  func saveOffset(from origin: NSPoint) {
+    guard let followOrigin else { return }
+    UserDefaults.standard.set(
+      [
+        "x": Double(origin.x - followOrigin.x),
+        "y": Double(origin.y - followOrigin.y),
+      ], forKey: Self.offsetKey)
+  }
+
+  func savePinnedOrigin(_ origin: NSPoint) {
+    UserDefaults.standard.set(
+      [
+        "x": Double(origin.x),
+        "y": Double(origin.y),
+      ], forKey: Self.pinnedOriginKey)
+  }
+
+  func storedPoint(forKey key: String) -> NSPoint? {
+    guard
+      let point = UserDefaults.standard.dictionary(forKey: key),
+      let x = point["x"] as? Double,
+      let y = point["y"] as? Double
+    else {
+      return nil
+    }
+    return NSPoint(x: x, y: y)
   }
 
   func show(status message: String) {

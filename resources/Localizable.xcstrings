@@ -18,6 +18,23 @@
         }
       }
     },
+    "Candidate panel position" : {
+      "comment" : "Menu item",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "候选窗位置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "候選窗位置"
+          }
+        }
+      }
+    },
     "Check for updates..." : {
       "comment" : "Menu item",
       "localizations" : {
@@ -140,6 +157,23 @@
         }
       }
     },
+    "Follow caret" : {
+      "comment" : "Candidate panel position",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟随光标"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟隨游標"
+          }
+        }
+      }
+    },
     "Logs..." : {
       "comment" : "Menu item",
       "localizations" : {
@@ -153,6 +187,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "日誌..."
+          }
+        }
+      }
+    },
+    "Offset from caret" : {
+      "comment" : "Candidate panel position",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟随光标（可拖动偏移）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟隨游標（可拖動偏移）"
+          }
+        }
+      }
+    },
+    "Option-drag to reposition" : {
+      "comment" : "Candidate panel position",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按住 Option 并拖动以调整位置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按住 Option 並拖動以調整位置"
+          }
+        }
+      }
+    },
+    "Pin panel" : {
+      "comment" : "Candidate panel position",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定候选窗"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定候選窗"
           }
         }
       }
@@ -221,6 +306,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "同步用戶資料"
+          }
+        }
+      }
+    },
+    "Use Rime setting" : {
+      "comment" : "Candidate panel position",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Rime 设置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Rime 設定"
           }
         }
       }

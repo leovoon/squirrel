@@ -229,6 +229,32 @@ final class SquirrelInputController: IMKInputController {
     let deploy = NSMenuItem(title: NSLocalizedString("Deploy", comment: "Menu item"), action: #selector(deploy), keyEquivalent: "`")
     deploy.target = self
     deploy.keyEquivalentModifierMask = [.control, .option]
+    let panelPosition = NSMenuItem(
+      title: NSLocalizedString("Candidate panel position", comment: "Menu item"), action: nil,
+      keyEquivalent: "")
+    let panelPositionMenu = NSMenu()
+    for mode in CandidatePanelPositionMode.allCases {
+      let item = NSMenuItem(
+        title: mode.localizedTitle, action: #selector(setCandidatePanelPositionMode(_:)),
+        keyEquivalent: "")
+      item.target = self
+      item.representedObject = mode.rawValue
+      item.state = NSApp.squirrelAppDelegate.panel?.positionMode == mode ? .on : .off
+      panelPositionMenu.addItem(item)
+    }
+    panelPositionMenu.addItem(.separator())
+    let dragHint = NSMenuItem(
+      title: NSLocalizedString("Option-drag to reposition", comment: "Candidate panel position"),
+      action: nil, keyEquivalent: "")
+    dragHint.isEnabled = false
+    panelPositionMenu.addItem(dragHint)
+    panelPositionMenu.addItem(.separator())
+    let useRimeSetting = NSMenuItem(
+      title: NSLocalizedString("Use Rime setting", comment: "Candidate panel position"),
+      action: #selector(useConfiguredCandidatePanelPosition), keyEquivalent: "")
+    useRimeSetting.target = self
+    panelPositionMenu.addItem(useRimeSetting)
+    panelPosition.submenu = panelPositionMenu
     let sync = NSMenuItem(title: NSLocalizedString("Sync user data", comment: "Menu item"), action: #selector(syncUserData), keyEquivalent: "")
     sync.target = self
     let logDir = NSMenuItem(title: NSLocalizedString("Logs...", comment: "Menu item"), action: #selector(openLogFolder), keyEquivalent: "")
@@ -242,6 +268,7 @@ final class SquirrelInputController: IMKInputController {
 
     let menu = NSMenu()
     menu.addItem(deploy)
+    menu.addItem(panelPosition)
     menu.addItem(sync)
     menu.addItem(logDir)
     menu.addItem(setting)
@@ -249,6 +276,16 @@ final class SquirrelInputController: IMKInputController {
     menu.addItem(update)
 
     return menu
+  }
+
+  @objc func setCandidatePanelPositionMode(_ sender: NSMenuItem) {
+    guard let rawValue = sender.representedObject as? String,
+          let mode = CandidatePanelPositionMode(rawValue: rawValue) else { return }
+    NSApp.squirrelAppDelegate.panel?.setPositionMode(mode)
+  }
+
+  @objc func useConfiguredCandidatePanelPosition() {
+    NSApp.squirrelAppDelegate.panel?.useConfiguredPositionMode()
   }
 
   @objc func deploy() {
