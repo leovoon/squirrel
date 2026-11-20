@@ -176,35 +176,6 @@ final class SquirrelPanel: NSPanel {
     }
   }
 
-  func setPositionMode(_ mode: CandidatePanelPositionMode, persistOverride: Bool = true) {
-    guard mode != positionMode else { return }
-    let panelIsVisible = isVisible
-    if panelIsVisible {
-      switch mode {
-      case .follow:
-        break
-      case .offset:
-        if positionMode == .follow {
-          saveOffset(from: frame.origin)
-        }
-      case .pinned:
-        savePinnedOrigin(frame.origin)
-      }
-    }
-    positionMode = mode
-    if persistOverride {
-      UserDefaults.standard.set(mode.rawValue, forKey: Self.modeOverrideKey)
-    }
-    if panelIsVisible {
-      show()
-    }
-  }
-
-  func useConfiguredPositionMode() {
-    UserDefaults.standard.removeObject(forKey: Self.modeOverrideKey)
-    setPositionMode(configuredPositionMode, persistOverride: false)
-  }
-
   func hide() {
     statusTimer?.invalidate()
     statusTimer = nil
@@ -377,6 +348,37 @@ final class SquirrelPanel: NSPanel {
       view.lightTheme = SquirrelTheme()
       view.lightTheme.load(config: config, dark: isDark)
     }
+  }
+}
+
+extension SquirrelPanel {
+  func setPositionMode(_ mode: CandidatePanelPositionMode, persistOverride: Bool = true) {
+    guard mode != positionMode else { return }
+    let panelIsVisible = isVisible
+    if panelIsVisible {
+      switch mode {
+      case .follow:
+        break
+      case .offset:
+        if positionMode == .follow {
+          saveOffset(from: frame.origin)
+        }
+      case .pinned:
+        savePinnedOrigin(frame.origin)
+      }
+    }
+    positionMode = mode
+    if persistOverride {
+      UserDefaults.standard.set(mode.rawValue, forKey: Self.modeOverrideKey)
+    }
+    if panelIsVisible {
+      show()
+    }
+  }
+
+  func useConfiguredPositionMode() {
+    UserDefaults.standard.removeObject(forKey: Self.modeOverrideKey)
+    setPositionMode(configuredPositionMode, persistOverride: false)
   }
 }
 
@@ -564,7 +566,7 @@ private extension SquirrelPanel {
     UserDefaults.standard.set(
       [
         "x": Double(origin.x - followOrigin.x),
-        "y": Double(origin.y - followOrigin.y),
+        "y": Double(origin.y - followOrigin.y)
       ], forKey: Self.offsetKey)
   }
 
@@ -572,19 +574,19 @@ private extension SquirrelPanel {
     UserDefaults.standard.set(
       [
         "x": Double(origin.x),
-        "y": Double(origin.y),
+        "y": Double(origin.y)
       ], forKey: Self.pinnedOriginKey)
   }
 
   func storedPoint(forKey key: String) -> NSPoint? {
     guard
       let point = UserDefaults.standard.dictionary(forKey: key),
-      let x = point["x"] as? Double,
-      let y = point["y"] as? Double
+      let xCoordinate = point["x"] as? Double,
+      let yCoordinate = point["y"] as? Double
     else {
       return nil
     }
-    return NSPoint(x: x, y: y)
+    return NSPoint(x: xCoordinate, y: yCoordinate)
   }
 
   func show(status message: String) {
