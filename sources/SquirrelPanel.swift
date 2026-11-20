@@ -352,6 +352,16 @@ final class SquirrelPanel: NSPanel {
 }
 
 extension SquirrelPanel {
+  @objc func setCandidatePanelPositionMode(_ sender: NSMenuItem) {
+    guard let rawValue = sender.representedObject as? String,
+          let mode = CandidatePanelPositionMode(rawValue: rawValue) else { return }
+    setPositionMode(mode)
+  }
+
+  @objc func useConfiguredCandidatePanelPosition() {
+    useConfiguredPositionMode()
+  }
+
   func setPositionMode(_ mode: CandidatePanelPositionMode, persistOverride: Bool = true) {
     guard mode != positionMode else { return }
     let panelIsVisible = isVisible

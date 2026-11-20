@@ -233,13 +233,16 @@ final class SquirrelInputController: IMKInputController {
       title: NSLocalizedString("Candidate panel position", comment: "Menu item"), action: nil,
       keyEquivalent: "")
     let panelPositionMenu = NSMenu()
+    let panel = NSApp.squirrelAppDelegate.panel
     for mode in CandidatePanelPositionMode.allCases {
       let item = NSMenuItem(
-        title: mode.localizedTitle, action: #selector(setCandidatePanelPositionMode(_:)),
+        title: mode.localizedTitle,
+        action: #selector(SquirrelPanel.setCandidatePanelPositionMode(_:)),
         keyEquivalent: "")
-      item.target = self
+      item.target = panel
+      item.isEnabled = panel != nil
       item.representedObject = mode.rawValue
-      item.state = NSApp.squirrelAppDelegate.panel?.positionMode == mode ? .on : .off
+      item.state = panel?.positionMode == mode ? .on : .off
       panelPositionMenu.addItem(item)
     }
     panelPositionMenu.addItem(.separator())
@@ -251,8 +254,9 @@ final class SquirrelInputController: IMKInputController {
     panelPositionMenu.addItem(.separator())
     let useRimeSetting = NSMenuItem(
       title: NSLocalizedString("Use Rime setting", comment: "Candidate panel position"),
-      action: #selector(useConfiguredCandidatePanelPosition), keyEquivalent: "")
-    useRimeSetting.target = self
+      action: #selector(SquirrelPanel.useConfiguredCandidatePanelPosition), keyEquivalent: "")
+    useRimeSetting.target = panel
+    useRimeSetting.isEnabled = panel != nil
     panelPositionMenu.addItem(useRimeSetting)
     panelPosition.submenu = panelPositionMenu
     let sync = NSMenuItem(title: NSLocalizedString("Sync user data", comment: "Menu item"), action: #selector(syncUserData), keyEquivalent: "")
@@ -276,16 +280,6 @@ final class SquirrelInputController: IMKInputController {
     menu.addItem(update)
 
     return menu
-  }
-
-  @objc func setCandidatePanelPositionMode(_ sender: NSMenuItem) {
-    guard let rawValue = sender.representedObject as? String,
-          let mode = CandidatePanelPositionMode(rawValue: rawValue) else { return }
-    NSApp.squirrelAppDelegate.panel?.setPositionMode(mode)
-  }
-
-  @objc func useConfiguredCandidatePanelPosition() {
-    NSApp.squirrelAppDelegate.panel?.useConfiguredPositionMode()
   }
 
   @objc func deploy() {
