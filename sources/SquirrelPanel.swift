@@ -97,8 +97,7 @@ final class SquirrelPanel: NSPanel {
     switch event.type {
     case .leftMouseDown:
       if positionMode != .follow && event.modifierFlags.contains(.option) {
-        performDrag(with: event)
-        saveDraggedOrigin(frame.origin)
+        dragPanel(with: event)
         forwardEvent = false
       } else {
         let (index, _, pagingUp) = view.click(at: mousePosition())
@@ -393,6 +392,30 @@ extension SquirrelPanel {
 }
 
 private extension SquirrelPanel {
+  func dragPanel(with mouseDown: NSEvent) {
+    let mouseDownLocation = convertPoint(toScreen: mouseDown.locationInWindow)
+    let initialOrigin = frame.origin
+
+    while let event = NSApp.nextEvent(
+      matching: [.leftMouseDragged, .leftMouseUp], until: .distantFuture,
+      inMode: .eventTracking, dequeue: true)
+    {
+      let mouseLocation = NSEvent.mouseLocation
+      let origin = NSPoint(
+        x: initialOrigin.x + mouseLocation.x - mouseDownLocation.x,
+        y: initialOrigin.y + mouseLocation.y - mouseDownLocation.y)
+      let screen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) })?.frame
+        ?? screenRect
+      let draggedRect = clamped(NSRect(origin: origin, size: frame.size), to: screen)
+      setFrameOrigin(draggedRect.origin)
+      saveDraggedOrigin(draggedRect.origin)
+
+      if event.type == .leftMouseUp {
+        break
+      }
+    }
+  }
+
   func mousePosition() -> NSPoint {
     var point = NSEvent.mouseLocation
     point = self.convertPoint(fromScreen: point)
